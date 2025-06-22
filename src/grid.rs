@@ -9,20 +9,9 @@ type Index = i16;
 /// be able to implement them smarter. For example, [`BitGrid`](crate::BitGrid) stores its cells as a bit vector,
 /// contiguous in memory. As such, [`BitGird::fill`](crate::BitGrid::fill) is implemented using `fill` method on `core::slice`.
 pub trait Grid: Sized {
+    // TODO: It'd be nice to gave Grid::new() behind Clone, so we can have &mut T types impl Grid
     // Construction
     fn new(width: usize, height: usize) -> Self;
-    fn new_with_fn<F>(width: usize, height: usize, mut func: F) -> Self
-    where
-        F: FnMut(Index, Index) -> bool,
-    {
-        let mut grid = Self::new(width, height);
-        for y in 0..grid.height() {
-            for x in 0..grid.width() {
-                grid.set(x, y, func(x, y));
-            }
-        }
-        grid
-    }
 
     // Checking size
     fn width(&self) -> Index;

@@ -10,7 +10,7 @@ pub struct Life<G: Grid = crate::BitGrid> {
 }
 
 /// Basic Usage
-impl<G: Grid> Life<G> {
+impl<G: Grid + Clone> Life<G> {
     /// Creates a new `Life` simulation with the given dimensions where all cells are initially **dead**.
     pub fn new(width: usize, height: usize) -> Self {
         Self::new_with_cells(G::new(width, height))
@@ -18,10 +18,12 @@ impl<G: Grid> Life<G> {
 
     /// Creates a new `Life` simulation with the given cells
     pub fn new_with_cells(cells: G) -> Self {
-        let scratch = G::new(cells.width() as usize, cells.height() as usize);
+        let scratch = cells.clone();
         Self { cells, scratch }
     }
+}
 
+impl<G: Grid> Life<G> {
     /// The width of the simulation
     pub fn width(&self) -> i16 {
         self.cells.width()
@@ -140,7 +142,7 @@ impl Life<crate::BitGrid> {
 }
 
 /// Patterns
-impl<G: Grid> Life<G> {
+impl<G: Grid + Clone> Life<G> {
     /// Writes right-facing glider with its corner at `(x, y)`
     ///
     /// # Cell info
@@ -196,7 +198,7 @@ impl<G: Grid> Life<G> {
 
 /// `std`-only functions
 #[cfg(feature = "std")]
-impl<G: Grid> Life<G> {
+impl<G: Grid + Clone> Life<G> {
     /// Prints the state of the board to `stdout`
     pub fn print_ascii(&self) {
         for y in 0..self.height() {
@@ -217,11 +219,9 @@ impl<G: Grid> Life<G> {
 mod test {
     use super::*;
 
-    use crate::BitGrid;
-
     #[test]
     fn check_square_lives() {
-        let mut life: Life<BitGrid> = Life::new(5, 5);
+        let mut life: Life = Life::new(5, 5);
 
         // ....
         // .OO.
@@ -246,7 +246,7 @@ mod test {
 
     #[test]
     fn check_spinner_spins() {
-        let mut life: Life<BitGrid> = Life::new(5, 5);
+        let mut life: Life = Life::new(5, 5);
 
         // ...
         // .O.

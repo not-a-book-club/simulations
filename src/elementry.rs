@@ -12,7 +12,7 @@ pub struct Elementry<G: Grid = crate::BitGrid> {
 }
 
 /// Basic Usage
-impl<G: Grid> Elementry<G> {
+impl<G: Grid + Clone> Elementry<G> {
     /// Creates a new `Elementry` simulation with the given rule and dimensions with all cells initially **dead**.
     pub fn new(rule: u8, width: usize) -> Self {
         Self::new_with_cells(rule, G::new(width, 1))
@@ -27,14 +27,16 @@ impl<G: Grid> Elementry<G> {
             1,
             "Elementary only operates on a 1D grid of cells"
         );
-        let scratch = G::new(cells.width() as usize, 1);
+        let scratch = cells.clone();
         Self {
             cells,
             scratch,
             rule,
         }
     }
+}
 
+impl<G: Grid> Elementry<G> {
     /// The width of the simulation
     pub fn width(&self) -> i16 {
         self.cells.width()

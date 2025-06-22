@@ -31,6 +31,19 @@ impl BitGrid {
         }
     }
 
+    pub fn new_with_fn<F>(width: usize, height: usize, mut func: F) -> Self
+    where
+        F: FnMut(i16, i16) -> bool,
+    {
+        let mut grid = Self::new(width, height);
+        for y in 0..grid.height() {
+            for x in 0..grid.width() {
+                grid.set(x, y, func(x, y));
+            }
+        }
+        grid
+    }
+
     pub fn parse<const N: usize>(text: &str, set: [char; N]) -> Option<Self> {
         let dim_y = text.lines().count() - 1;
         let dim_x = text.lines().next().map(|l| l.len() - 1).unwrap_or(0);

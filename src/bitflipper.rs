@@ -8,19 +8,19 @@ pub struct BitFlipper<G: Grid = crate::BitGrid> {
     grid: G,
 }
 
-impl<G: Grid> BitFlipper<G> {
-    pub fn new(view_width: i32, view_height: i32, dir_x: i32, dir_y: i32) -> Self {
-        let grid = Grid::new(view_width as usize, view_height as usize);
-
+impl<G: Grid + Clone> BitFlipper<G> {
+    pub fn new(width: i32, height: i32, dir_x: i32, dir_y: i32) -> Self {
         Self {
-            grid,
+            grid: Grid::new(width as usize, height as usize),
             x: 0,
             y: 0,
             dir_x,
             dir_y,
         }
     }
+}
 
+impl<G: Grid> BitFlipper<G> {
     pub fn new_with_grid(grid: G, dir_x: i32, dir_y: i32) -> Self {
         let x = grid.width() as i32;
         let y = grid.height() as i32;
