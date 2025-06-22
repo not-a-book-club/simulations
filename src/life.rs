@@ -1,38 +1,35 @@
-use crate::BitGrid;
+use crate::Grid;
 
 #[derive(Clone)]
-pub struct Life {
+pub struct Life<G: Grid = crate::BitGrid> {
     /// Current state of the simulation
-    cells: BitGrid,
+    cells: G,
 
-    /// Shadow copy of cells used when stepping the simulation
-    // TODO: I think it's faster to store this in the object rather than each call into step, but need to benchmark
-    shadow: BitGrid,
-
-    width: i16,
-    height: i16,
+    /// Scratch copy of cells used when stepping the simulation
+    scratch: G,
 }
 
 /// Basic Usage
-impl Life {
+impl<G: Grid> Life<G> {
     /// Creates a new `Life` simulation with the given dimensions where all cells are initially **dead**.
     pub fn new(width: usize, height: usize) -> Self {
-        Self {
-            cells: BitGrid::new(width, height),
-            shadow: BitGrid::new(width, height),
-            width: width as i16,
-            height: height as i16,
-        }
+        Self::new_with_cells(G::new(width, height))
+    }
+
+    /// Creates a new `Life` simulation with the given cells
+    pub fn new_with_cells(cells: G) -> Self {
+        let scratch = G::new(cells.width() as usize, cells.height() as usize);
+        Self { cells, scratch }
     }
 
     /// The width of the simulation
     pub fn width(&self) -> i16 {
-        self.width
+        self.cells.width()
     }
 
     /// The height of the simulation
     pub fn height(&self) -> i16 {
-        self.height
+        self.cells.height()
     }
 
     /// Checks whether the cell at `(x, y)` is **alive** or **dead**.
@@ -52,9 +49,9 @@ impl Life {
     ///
     /// # Example
     /// ```rust
-    /// # use simulations::Life;
+    /// # use simulations::{BitGrid, Life};
     /// # fn main() {
-    /// let mut life = Life::new(5, 5);
+    /// let mut life: Life<BitGrid> = Life::new(5, 5);
     ///
     /// // All cells start out as dead.
     /// assert_eq!(life.set(0, 0, true), false);
@@ -68,6 +65,18 @@ impl Life {
     #[track_caller]
     pub fn set(&mut self, x: i16, y: i16, is_alive: bool) -> bool {
         self.cells.set(x, y, is_alive)
+    }
+
+    pub fn cells(&self) -> &G {
+        &self.cells
+    }
+
+    pub fn cells_mut(&mut self) -> &mut G {
+        &mut self.cells
+    }
+
+    pub fn into_cells(self) -> G {
+        self.cells
     }
 
     /// Steps the simulation once, returning the number of cells updated
@@ -85,7 +94,7 @@ impl Life {
                 live_count += self.get(x - 1, y + 1) as u8;
 
                 live_count += self.get(x + 0, y - 1) as u8;
-                // Don't count itself
+                // Don't count itself, skip (x+0, y+0)
                 live_count += self.get(x + 0, y + 1) as u8;
 
                 live_count += self.get(x + 1, y - 1) as u8;
@@ -100,7 +109,7 @@ impl Life {
                     live_count == 3
                 };
 
-                self.shadow.set(x, y, is_alive);
+                self.scratch.set(x, y, is_alive);
 
                 if self.get(x, y) != is_alive {
                     count += 1;
@@ -108,20 +117,18 @@ impl Life {
             }
         }
 
-        core::mem::swap(&mut self.cells, &mut self.shadow);
+        core::mem::swap(&mut self.cells, &mut self.scratch);
 
         count
     }
 
     /// Marks all cells as **dead**
     pub fn clear(&mut self) {
-        for y in 0..self.height() {
-            for x in 0..self.width() {
-                self.set(x, y, false);
-            }
-        }
+        self.cells.clear();
     }
+}
 
+impl Life<crate::BitGrid> {
     /// Set all cells to **alive** or **dead** using the provided rng.
     pub fn clear_random(&mut self, rng: &mut impl rand::Rng) {
         let bytes: &mut [u8] = self.cells.as_mut_bytes();
@@ -130,14 +137,10 @@ impl Life {
             chunk.copy_from_slice(&rand_bytes[..chunk.len()]);
         }
     }
-
-    pub fn as_bitgrid(&self) -> &BitGrid {
-        &self.cells
-    }
 }
 
 /// Patterns
-impl Life {
+impl<G: Grid> Life<G> {
     /// Writes right-facing glider with its corner at `(x, y)`
     ///
     /// # Cell info
@@ -193,7 +196,7 @@ impl Life {
 
 /// `std`-only functions
 #[cfg(feature = "std")]
-impl Life {
+impl<G: Grid> Life<G> {
     /// Prints the state of the board to `stdout`
     pub fn print_ascii(&self) {
         for y in 0..self.height() {
@@ -214,9 +217,11 @@ impl Life {
 mod test {
     use super::*;
 
+    use crate::BitGrid;
+
     #[test]
     fn check_square_lives() {
-        let mut life = Life::new(5, 5);
+        let mut life: Life<BitGrid> = Life::new(5, 5);
 
         // ....
         // .OO.
@@ -241,7 +246,7 @@ mod test {
 
     #[test]
     fn check_spinner_spins() {
-        let mut life = Life::new(5, 5);
+        let mut life: Life<BitGrid> = Life::new(5, 5);
 
         // ...
         // .O.
