@@ -1,6 +1,7 @@
+use crate::Grid;
+
 use alloc::vec;
 use alloc::vec::Vec;
-use core::fmt::Debug;
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct BitGrid {
@@ -9,12 +10,12 @@ pub struct BitGrid {
     height: i16,
 }
 
-impl Debug for BitGrid {
+impl core::fmt::Debug for BitGrid {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("BitGrid")
             .field("width", &self.width)
             .field("height", &self.height)
-            .field("number of bits set", &self.count_ones())
+            .field("set/unset", &(self.count_set(), self.count_unset()))
             .finish()
     }
 }
@@ -69,8 +70,18 @@ impl BitGrid {
         self.buf.iter().all(|&byte| byte == 0)
     }
 
-    pub fn count_ones(&self) -> i32 {
-        self.buf.iter().map(|&byte| byte.count_ones() as i32).sum()
+    pub fn count_set(&self) -> usize {
+        self.buf
+            .iter()
+            .map(|&byte| byte.count_ones() as usize)
+            .sum()
+    }
+
+    pub fn count_unset(&self) -> usize {
+        self.buf
+            .iter()
+            .map(|&byte| byte.count_zeros() as usize)
+            .sum()
     }
 
     #[track_caller]
@@ -104,10 +115,6 @@ impl BitGrid {
         self.buf[idx] ^= 1 << bit;
 
         old
-    }
-
-    pub fn clear(&mut self) {
-        self.as_mut_bytes().fill(0b0000_0000_u8);
     }
 
     pub fn as_bytes(&self) -> &[u8] {
@@ -144,6 +151,43 @@ impl BitGrid {
         }
 
         diff
+    }
+}
+
+impl Grid for BitGrid {
+    fn new(width: usize, height: usize) -> Self {
+        Self::new(width, height)
+    }
+
+    fn width(&self) -> i16 {
+        self.width()
+    }
+
+    fn height(&self) -> i16 {
+        self.height()
+    }
+
+    #[track_caller]
+    fn get(&self, x: i16, y: i16) -> bool {
+        self.get(x, y)
+    }
+
+    #[track_caller]
+    fn set(&mut self, x: i16, y: i16, set: bool) -> bool {
+        self.set(x, y, set)
+    }
+
+    #[track_caller]
+    fn flip(&mut self, x: i16, y: i16) -> bool {
+        self.flip(x, y)
+    }
+
+    fn fill(&mut self, set: bool) {
+        if set {
+            self.as_mut_bytes().fill(0b0000_0000_u8);
+        } else {
+            self.as_mut_bytes().fill(0b1111_1111_u8);
+        }
     }
 }
 
