@@ -22,7 +22,7 @@ impl core::fmt::Debug for BitGrid {
 
 impl BitGrid {
     pub fn new(width: usize, height: usize) -> Self {
-        let buf = vec![0; ((width + 7) / 8) * height];
+        let buf = vec![0; width.div_ceil(8) * height];
 
         Self {
             buf,
@@ -133,7 +133,7 @@ impl BitGrid {
         let x = x as usize;
         let y = y as usize;
 
-        let idx = (x / 8) + y * ((self.width() as usize + 7) / 8);
+        let idx = (x / 8) + y * (self.width() as usize).div_ceil(8);
         let bit = x % 8;
 
         (idx, bit as u8)
