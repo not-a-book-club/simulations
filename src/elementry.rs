@@ -1,32 +1,43 @@
-use crate::BitGrid;
+use crate::Grid;
 
 #[derive(Clone)]
-pub struct Elementry {
+pub struct Elementry<G: Grid = crate::BitGrid> {
     /// Current state of the simulation
-    cells: BitGrid,
+    cells: G,
 
-    /// Shadow copy of cells used when stepping the simulation
-    shadow: BitGrid,
+    /// Scratch copy of cells used when stepping the simulation
+    scratch: G,
 
     rule: u8,
-    width: i16,
 }
 
 /// Basic Usage
-impl Elementry {
-    /// Creates a new `Elementry` simulation with the given dimensions where all cells are initially **dead**.
+impl<G: Grid> Elementry<G> {
+    /// Creates a new `Elementry` simulation with the given rule and dimensions with all cells initially **dead**.
     pub fn new(rule: u8, width: usize) -> Self {
+        Self::new_with_cells(rule, G::new(width, 1))
+    }
+
+    /// Creates a new `Elementry` simulation with the given rule and existing cells.
+    ///
+    /// Note: `cells` must be 1 dimensional (cells.height() == 1) or this method will panic.
+    pub fn new_with_cells(rule: u8, cells: G) -> Self {
+        assert_eq!(
+            cells.height(),
+            1,
+            "Elementary only operates on a 1D grid of cells"
+        );
+        let scratch = G::new(cells.width() as usize, 1);
         Self {
-            cells: BitGrid::new(width, 1),
-            shadow: BitGrid::new(width, 1),
+            cells,
+            scratch,
             rule,
-            width: width as i16,
         }
     }
 
     /// The width of the simulation
     pub fn width(&self) -> i16 {
-        self.width
+        self.cells.width()
     }
 
     pub fn cells(&self) -> impl Iterator<Item = bool> + '_ {
@@ -47,6 +58,7 @@ impl Elementry {
     pub fn step(&mut self) -> u32 {
         let mut count = 0;
 
+        // Modify scratch while we step because we must keep the immediate previous version unmodified.
         for x in 0..self.width() {
             let old = self.get(x);
             let c = ((self.get(x - 1) as u8) << 2)
@@ -55,26 +67,31 @@ impl Elementry {
             let mask = 1 << c;
 
             let is_alive = (self.rule & mask) != 0;
-            self.shadow.set(x, 1, is_alive);
+            self.scratch.set(x, 1, is_alive);
 
             count += (old != is_alive) as u32;
         }
 
-        core::mem::swap(&mut self.cells, &mut self.shadow);
+        // Now that we're done stepping, we can swap our scrap and official cells.
+        // Note: We expect Grids to be heap-allocated so this is quick enough.
+        // TODO: We could bounce with indices instead. Might even be faster.
+        core::mem::swap(&mut self.cells, &mut self.scratch);
 
         count
     }
 
     /// Marks all cells as **dead**
     pub fn clear(&mut self) {
-        self.cells.as_mut_bytes().fill(0);
+        self.cells.fill(false);
     }
 
     /// Marks all cells as **alive**
     pub fn clear_alive(&mut self) {
-        self.cells.as_mut_bytes().fill(0xff);
+        self.cells.fill(true);
     }
+}
 
+impl Elementry<crate::BitGrid> {
     /// Set all cells to **alive** or **dead** using the provided rng.
     pub fn clear_random(&mut self, rng: &mut impl rand::Rng) {
         let bytes: &mut [u8] = self.cells.as_mut_bytes();
