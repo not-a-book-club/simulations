@@ -5,7 +5,6 @@ pub struct BitFlipper<G: Grid = crate::BitGrid> {
     y: i32,
     dir_x: i32,
     dir_y: i32,
-
     grid: G,
 }
 
@@ -19,6 +18,18 @@ impl<G: Grid> BitFlipper<G> {
             y: 0,
             dir_x,
             dir_y,
+        }
+    }
+
+    pub fn new_with_grid(grid: G, dir_x: i32, dir_y: i32) -> Self {
+        let x = grid.width() as i32;
+        let y = grid.height() as i32;
+        Self {
+            x,
+            y,
+            dir_x,
+            dir_y,
+            grid,
         }
     }
 
