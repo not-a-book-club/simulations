@@ -1,19 +1,20 @@
-use crate::BitGrid;
+use crate::Grid;
 
-pub struct BitFlipper {
-    pub x: i32,
-    pub y: i32,
+pub struct BitFlipper<G: Grid = crate::BitGrid> {
+    x: i32,
+    y: i32,
     dir_x: i32,
     dir_y: i32,
-    pub bits: BitGrid,
+
+    grid: G,
 }
 
-impl BitFlipper {
+impl<G: Grid> BitFlipper<G> {
     pub fn new(view_width: i32, view_height: i32, dir_x: i32, dir_y: i32) -> Self {
-        let bits = BitGrid::new(view_width as usize, view_height as usize);
+        let grid = Grid::new(view_width as usize, view_height as usize);
 
         Self {
-            bits,
+            grid,
             x: 0,
             y: 0,
             dir_x,
@@ -21,12 +22,27 @@ impl BitFlipper {
         }
     }
 
+    /// Destroy this BitFlipper sim and get just its backing `Grid` back
+    pub fn into_grid(self) -> G {
+        self.grid
+    }
+
+    /// Borrow the backing `Grid` object
+    pub fn grid(&self) -> &G {
+        &self.grid
+    }
+
+    /// Borrow the backing `Grid` object
+    pub fn grid_mut(&mut self) -> &mut G {
+        &mut self.grid
+    }
+
     pub fn flip_and_advance(&mut self, dir: i32) {
         if self.x <= 0 {
             self.dir_x = self.dir_x.abs() * dir;
         }
 
-        if self.x >= self.bits.width() as i32 * self.dir_y.abs() {
+        if self.x >= self.grid.width() as i32 * self.dir_y.abs() {
             self.dir_x = -self.dir_x.abs() * dir;
         }
 
@@ -34,7 +50,7 @@ impl BitFlipper {
             self.dir_y = self.dir_y.abs() * dir;
         }
 
-        if self.y >= self.bits.height() as i32 * self.dir_x.abs() {
+        if self.y >= self.grid.height() as i32 * self.dir_x.abs() {
             self.dir_y = -self.dir_y.abs() * dir;
         }
 
@@ -67,13 +83,15 @@ impl BitFlipper {
     fn flip_bit(&mut self, dir: i32) {
         let x_pixel = (self.x + if self.dir_x * dir >= 0 { 0 } else { -1 }) / self.dir_y.abs();
         let y_pixel = (self.y + if self.dir_y * dir >= 0 { 0 } else { -1 }) / self.dir_x.abs();
-        self.bits.flip(x_pixel as i16, y_pixel as i16);
+        self.grid.flip(x_pixel as i16, y_pixel as i16);
     }
 }
 
 #[cfg(test)]
 mod test {
-    use super::*;
+    // All the tests use BitGrid with BitFlipper
+    use crate::BitGrid;
+    type BitFlipper = crate::BitFlipper<BitGrid>;
 
     use pretty_assertions::assert_eq;
     use rstest::*;
@@ -107,11 +125,11 @@ mod test {
         let mut bit_flipper = BitFlipper::new(expected.width() as _, expected.height() as _, 1, 1);
         bit_flipper.flip_and_advance(1);
 
-        let actual = bit_flipper.bits;
+        let actual: &_ = bit_flipper.grid();
         save_test_image("simple_1_by_1", "expected", &expected);
-        save_test_image("simple_1_by_1", "actual", &actual);
+        save_test_image("simple_1_by_1", "actual", actual);
 
-        assert_eq!(expected, actual);
+        assert_eq!(&expected, actual);
     }
 
     #[test]
@@ -123,11 +141,11 @@ mod test {
             bit_flipper.flip_and_advance(1);
         }
 
-        let actual = bit_flipper.bits;
+        let actual: &_ = bit_flipper.grid();
         save_test_image("simple_32_by_32", "expected", &expected);
-        save_test_image("simple_32_by_32", "actual", &actual);
+        save_test_image("simple_32_by_32", "actual", actual);
 
-        assert_eq!(expected, actual);
+        assert_eq!(&expected, actual);
     }
 
     fn save_test_image(scope: &str, label: &str, frame: &BitGrid) {
