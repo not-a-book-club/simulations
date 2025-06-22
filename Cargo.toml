@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 rand = { version = "0.9", default-features = false }
+image = { version = "0.25", optional = true }
 
 [dev-dependencies]
 image = "0.25"
@@ -13,5 +14,6 @@ pretty_assertions = "1.4"
 rstest = "0.24"
 
 [features]
-default = ["std"]
+default = ["std", "image"]
 std = []
+image = ["std", "dep:image"]

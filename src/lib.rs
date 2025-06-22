@@ -7,7 +7,7 @@
 
 extern crate alloc;
 
-mod grid;
+pub mod grid;
 pub use grid::Grid;
 
 mod life;

@@ -191,6 +191,88 @@ impl Grid for BitGrid {
     }
 }
 
+/// Local typedef to simplify using image's image type. We won't be changing the backing store from a Vec.
+#[cfg(feature = "image")]
+type ImageBuffer<P> = image::ImageBuffer<P, Vec<<P as image::Pixel>::Subpixel>>;
+
+#[cfg(feature = "image")]
+impl BitGrid {
+    /// Convert the bitgrid into an [`image::ImageBuffer`](image::ImageBuffer).
+    ///
+    /// # Coloring
+    /// - `palette[0]` is the pixel color used for set cells.
+    /// - `palette[1]` is the pixel color used for unset cells.
+    ///
+    /// # Example
+    /// ```rust,no_run
+    /// # use simulations::BitGrid;
+    /// # use image::*;
+    /// // Build a basic bitgrid: All '1' cells are set, everything else is unset.
+    /// let bitgrid: BitGrid = BitGrid::parse("1000\n01000\n0010\n0001", ['1']).unwrap();
+    ///
+    /// // Save it as an 8-bit Grayscale PNG
+    /// bitgrid
+    ///     .to_image([
+    ///         Luma([0xff_u8]),
+    ///         Luma([0x00_u8]),
+    ///     ])
+    ///     .save("example_gray.png")
+    ///     .expect("Failed to save image");
+    ///
+    /// // Save it as an 8-bit RGB PNG
+    /// bitgrid
+    ///     .to_image::<Rgb<u8>>([
+    ///         Rgb([0xff, 0x00, 0xff]),
+    ///         Rgb([0x00, 0x00, 0x00]),
+    ///     ])
+    ///     .save("example_rgb.png")
+    ///     .expect("Failed to save image");  
+    /// ```
+    pub fn to_image<P>(&self, palette: [P; 2]) -> ImageBuffer<P>
+    where
+        P: image::Pixel,
+    {
+        ImageBuffer::<P>::from_fn(
+            self.width() as u32,
+            self.height() as u32,
+            |x: u32, y: u32| {
+                if self.get(x as _, y as _) {
+                    palette[0]
+                } else {
+                    palette[1]
+                }
+            },
+        )
+    }
+
+    /// Convert the bitgrid into an [`image::ImageBuffer`](image::ImageBuffer).
+    ///
+    /// # Coloring
+    /// This method works like [`to_image`](Self::to_image), except with a provided grayscale palette.
+    ///
+    /// # Example
+    /// ```rust,no_run
+    /// # use simulations::BitGrid;
+    /// # use image::*;
+    /// // Build a basic bitgrid: All '1' cells are set, everything else is unset.
+    /// let bitgrid: BitGrid = BitGrid::parse("1000\n01000\n0010\n0001", ['1']).unwrap();
+    ///
+    /// // Save it as an 8-bit Grayscale PNG
+    /// bitgrid
+    ///     .to_image_grayscale()
+    ///     .save("example_gray.png")
+    ///     .expect("Failed to save image");
+    ///
+    pub fn to_image_grayscale(&self) -> ImageBuffer<image::Luma<u8>> {
+        use image::Luma;
+
+        self.to_image([
+            Luma([0xff_u8]), // set   Cells
+            Luma([0x00_u8]), // unset Cells
+        ])
+    }
+}
+
 #[cfg(test)]
 mod tests {
     #![allow(non_snake_case, clippy::bool_assert_comparison)]

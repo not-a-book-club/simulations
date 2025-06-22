@@ -149,13 +149,16 @@ mod test {
     }
 
     fn save_test_image(scope: &str, label: &str, frame: &BitGrid) {
-        use image::{imageops, Luma};
+        use image::imageops;
         eprintln!("+ Saving {scope}_{label}:");
 
         // TODO: Should probably sanitize scope incase it contains "::" or something that makes for bad filenames.
 
         // Usually the folder with the Cargo.toml
-        // let _ = dbg!(std::env::current_dir());
+        eprintln!(
+            "+ Running from {}",
+            std::env::current_dir().unwrap_or_default().display()
+        );
 
         let out_dir = "./target/test-images";
         std::fs::create_dir_all(out_dir).unwrap();
@@ -166,17 +169,10 @@ mod test {
             frame.height()
         );
 
-        let mut img =
-            image::GrayImage::from_fn(frame.width() as u32, frame.height() as u32, |x, y| {
-                if frame.get(x as _, y as _) {
-                    Luma([0xFF])
-                } else {
-                    Luma([0x00])
-                }
-            });
-
+        let mut img = frame.to_image_grayscale();
         let max_dim = i16::max(frame.width(), frame.height()) as f32;
 
+        // Make it readable
         if max_dim < 500. {
             let nw = (img.width() as f32 * (500. / max_dim)) as u32;
             let nh = (img.height() as f32 * (500. / max_dim)) as u32;
