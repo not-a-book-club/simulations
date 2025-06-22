@@ -1,1 +1,7 @@
+# Rust
 Cargo.lock
+target/
+
+# Image formats we might use
+*.png
+*.bmp
