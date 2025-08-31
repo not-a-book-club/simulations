@@ -22,7 +22,7 @@ impl core::fmt::Debug for BitGrid {
 
 impl BitGrid {
     pub fn new(width: usize, height: usize) -> Self {
-        let buf = vec![0; width.div_ceil(8) * height];
+        let buf = vec![0; (width * height) / 8];
 
         Self {
             buf,
@@ -146,10 +146,11 @@ impl BitGrid {
         let x = x as usize;
         let y = y as usize;
 
-        let idx = (x / 8) + y * (self.width() as usize).div_ceil(8);
-        let bit = x % 8;
+        let i = x + y * (self.width() as usize);
+        let byte = i / 8;
+        let bit = i % 8;
 
-        (idx, bit as u8)
+        (byte, bit as u8)
     }
 
     pub fn diff_with(&self, other: &BitGrid) -> BitGrid {
@@ -339,20 +340,20 @@ mod tests {
 
     #[rstest]
     #[case::y_is_00(0, (0, 0))]
-    #[case::y_is_01(1, (1, 0))]
-    #[case::y_is_04(4, (4, 0))]
-    #[case::y_is_08(8, (8, 0))]
-    #[case::y_is_12(12, (12, 0))]
-    #[case::y_is_16(16, (16, 0))]
-    #[case::y_is_17(17, (17, 0))]
+    #[case::y_is_01(1, (0, 1))]
+    #[case::y_is_04(4, (0, 4))]
+    #[case::y_is_08(8, (1, 0))]
+    #[case::y_is_12(12, (1, 4))]
+    #[case::y_is_16(16, (2, 0))]
+    #[case::y_is_17(17, (2, 1))]
     // Check wrapping behavior too
     #[case::y_is_00_wrap(0+32, (0, 0))]
-    #[case::y_is_01_wrap(1+32, (1, 0))]
-    #[case::y_is_04_wrap(4+32, (4, 0))]
-    #[case::y_is_08_wrap(8+32, (8, 0))]
-    #[case::y_is_12_wrap(12+32, (12, 0))]
-    #[case::y_is_16_wrap(16+32, (16, 0))]
-    #[case::y_is_17_wrap(17+32, (17, 0))]
+    #[case::y_is_01_wrap(1+32, (0, 1))]
+    #[case::y_is_04_wrap(4+32, (0, 4))]
+    #[case::y_is_08_wrap(8+32, (1, 0))]
+    #[case::y_is_12_wrap(12+32, (1, 4))]
+    #[case::y_is_16_wrap(16+32, (2, 0))]
+    #[case::y_is_17_wrap(17+32, (2, 1))]
     fn check_1x32_idx(#[case] y: i16, #[case] (idx, bit): (usize, u8)) {
         let grid = BitGrid::new(1, 32);
         let x = 0;
