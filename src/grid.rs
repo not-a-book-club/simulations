@@ -16,12 +16,16 @@ pub trait Grid: Sized {
     fn new(dims: IVec3) -> Self;
 
     // Checking size
-    fn width(&self) -> Index;
-    fn height(&self) -> Index;
-    fn depth(&self) -> Index;
-    fn dims(&self) -> IVec3 {
-        (self.width(), self.height(), self.depth()).into()
+    fn width(&self) -> Index {
+        self.dims().x
     }
+    fn height(&self) -> Index {
+        self.dims().y
+    }
+    fn depth(&self) -> Index {
+        self.dims().z
+    }
+    fn dims(&self) -> IVec3;
 
     // Indexed access
     #[track_caller]
@@ -70,16 +74,8 @@ mod tests {
             unreachable!("Not expected to be called by bitflipper: new(dims: {dims:?})");
         }
 
-        fn width(&self) -> Index {
-            self.grid.width()
-        }
-
-        fn height(&self) -> Index {
-            self.grid.height()
-        }
-
-        fn depth(&self) -> Index {
-            self.grid.depth()
+        fn dims(&self) -> IVec3 {
+            IVec3::new(self.grid.width(), self.grid.height(), self.grid.depth())
         }
 
         fn get(&self, x: Index, y: Index, z: Index) -> bool {

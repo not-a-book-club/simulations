@@ -176,7 +176,7 @@ mod test {
         let mut expected = BitGrid::new(1, 1, 1);
         expected.flip(1, 1, 1);
 
-        let mut bit_flipper = BitFlipper::new(expected.dims().into(), IVec3::one());
+        let mut bit_flipper = BitFlipper::new(expected.dims(), IVec3::one());
         bit_flipper.flip_and_advance(1);
 
         let actual: &_ = bit_flipper.grid();
@@ -190,7 +190,7 @@ mod test {
     fn test_32_by_32_by_32_simple_diagonal() {
         let expected = BitGrid::new(32, 32, 32);
 
-        let mut bit_flipper = BitFlipper::new(expected.dims().into(), IVec3::one());
+        let mut bit_flipper = BitFlipper::new(expected.dims(), IVec3::one());
         for _i in 0..64 {
             bit_flipper.flip_and_advance(1);
         }

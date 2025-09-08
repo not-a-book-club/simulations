@@ -86,8 +86,8 @@ impl BitGrid {
         self.depth
     }
 
-    pub fn dims(&self) -> (Index, Index, Index) {
-        (self.width(), self.height(), self.depth())
+    pub fn dims(&self) -> IVec3 {
+        IVec3::new(self.width, self.height, self.depth)
     }
 
     pub fn is_empty(&self) -> bool {
@@ -186,16 +186,8 @@ impl Grid for BitGrid {
         Self::new(dims[0] as usize, dims[1] as usize, dims[2] as usize)
     }
 
-    fn width(&self) -> Index {
-        self.width()
-    }
-
-    fn height(&self) -> Index {
-        self.height()
-    }
-
-    fn depth(&self) -> Index {
-        self.depth()
+    fn dims(&self) -> IVec3 {
+        self.dims()
     }
 
     #[track_caller]
