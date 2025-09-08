@@ -127,16 +127,26 @@ impl<G: Grid> BitFlipper<G> {
     }
 
     fn flip_bit(&mut self, dir: i32) {
-        let x_pixel = (self.pos.x + if self.dir.x * dir >= 0 { 0 } else { -1 })
-            / self.dir.y.abs().max(1)
-            / self.dir.z.abs().max(1);
-        let y_pixel = (self.pos.y + if self.dir.y * dir >= 0 { 0 } else { -1 })
-            / self.dir.x.abs().max(1)
-            / self.dir.z.abs().max(1);
-        let z_pixel = (self.pos.z + if self.dir.z * dir >= 0 { 0 } else { -1 })
-            / self.dir.x.abs().max(1)
-            / self.dir.y.abs().max(1);
-        self.grid.flip(x_pixel, y_pixel, z_pixel);
+        // TODO: Why do we subtract one here again?
+        let mut pos: IVec3 = self.pos;
+        if self.dir.x * dir < 0 {
+            pos.x -= 1;
+        }
+        if self.dir.y * dir < 0 {
+            pos.y -= 1;
+        }
+        if self.dir.z * dir < 0 {
+            pos.z -= 1;
+        }
+
+        // We're dividing by dir.abs(), but need to handle a possible 0.
+        let dir: IVec3 = self.dir.abs().max_by_component(IVec3::one());
+
+        let x: Index = pos.x / dir.y / dir.z;
+        let y: Index = pos.y / dir.x / dir.z;
+        let z: Index = pos.z / dir.x / dir.y;
+
+        self.grid.flip(x, y, z);
     }
 }
 
