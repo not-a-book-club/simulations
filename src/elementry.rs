@@ -12,12 +12,14 @@ pub struct Elementry<G: Grid = crate::BitGrid> {
 }
 
 /// Basic Usage
-impl<G: Grid + Clone> Elementry<G> {
+impl<G: GridNew + Clone> Elementry<G> {
     /// Creates a new `Elementry` simulation with the given rule and dimensions with all cells initially **dead**.
     pub fn new(rule: u8, width: usize) -> Self {
-        Self::new_with_cells(rule, G::new(width, 1))
+        Self::new_with_cells(rule, G::new(IVec3::new(width as Index, 1, 1)))
     }
+}
 
+impl<G: Grid + Clone> Elementry<G> {
     /// Creates a new `Elementry` simulation with the given rule and existing cells.
     ///
     /// Note: `cells` must be 1 dimensional (cells.height() == 1) or this method will panic.
@@ -25,8 +27,16 @@ impl<G: Grid + Clone> Elementry<G> {
         assert_eq!(
             cells.height(),
             1,
-            "Elementary only operates on a 1D grid of cells"
+            "Elementary only operates on a 1D grid of cells, but height == {}",
+            cells.height(),
         );
+        assert_eq!(
+            cells.depth(),
+            1,
+            "Elementary only operates on a 1D grid of cells, but depth == {}",
+            cells.depth()
+        );
+
         let scratch = cells.clone();
         Self {
             cells,
@@ -39,7 +49,7 @@ impl<G: Grid + Clone> Elementry<G> {
 impl<G: Grid> Elementry<G> {
     /// The width of the simulation
     pub fn width(&self) -> i16 {
-        self.cells.width()
+        self.cells.width() as i16
     }
 
     pub fn cells(&self) -> impl Iterator<Item = bool> + '_ {
@@ -47,11 +57,11 @@ impl<G: Grid> Elementry<G> {
     }
 
     pub fn get(&self, x: i16) -> bool {
-        self.cells.get(x, 1)
+        self.cells.get(x as Index, 1, 1)
     }
 
     pub fn set(&mut self, x: i16, is_alive: bool) {
-        self.cells.set(x, 1, is_alive);
+        self.cells.set(x as Index, 1, 1, is_alive);
     }
 
     /// Steps the simulation once, returning the number of cells updated
@@ -69,7 +79,7 @@ impl<G: Grid> Elementry<G> {
             let mask = 1 << c;
 
             let is_alive = (self.rule & mask) != 0;
-            self.scratch.set(x, 1, is_alive);
+            self.scratch.set(x as Index, 1, 1, is_alive);
 
             count += (old != is_alive) as u32;
         }

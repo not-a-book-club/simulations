@@ -14,8 +14,8 @@ pub use grid::GridNew;
 // mod life;
 // pub use life::Life;
 
-// mod elementry;
-// pub use elementry::Elementry;
+mod elementry;
+pub use elementry::Elementry;
 
 mod bitgrid;
 pub use bitgrid::BitGrid;
