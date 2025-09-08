@@ -11,8 +11,8 @@ pub mod grid;
 pub use grid::Grid;
 pub use grid::GridNew;
 
-// mod life;
-// pub use life::Life;
+mod life;
+pub use life::Life;
 
 mod elementry;
 pub use elementry::Elementry;

@@ -10,12 +10,14 @@ pub struct Life<G: Grid = crate::BitGrid> {
 }
 
 /// Basic Usage
-impl<G: Grid + Clone> Life<G> {
+impl<G: GridNew + Clone> Life<G> {
     /// Creates a new `Life` simulation with the given dimensions where all cells are initially **dead**.
     pub fn new(width: usize, height: usize) -> Self {
-        Self::new_with_cells(G::new(width, height))
+        Self::new_with_cells(G::new(IVec3::new(width as Index, height as Index, 1)))
     }
+}
 
+impl<G: Grid + Clone> Life<G> {
     /// Creates a new `Life` simulation with the given cells
     pub fn new_with_cells(cells: G) -> Self {
         let scratch = cells.clone();
@@ -26,12 +28,12 @@ impl<G: Grid + Clone> Life<G> {
 impl<G: Grid> Life<G> {
     /// The width of the simulation
     pub fn width(&self) -> i16 {
-        self.cells.width()
+        self.cells.width() as i16
     }
 
     /// The height of the simulation
     pub fn height(&self) -> i16 {
-        self.cells.height()
+        self.cells.height() as i16
     }
 
     /// Checks whether the cell at `(x, y)` is **alive** or **dead**.
@@ -39,7 +41,7 @@ impl<G: Grid> Life<G> {
     /// Out of bounds access wrap around.
     #[track_caller]
     pub fn get(&self, x: i16, y: i16) -> bool {
-        self.cells.get(x, y)
+        self.cells.get(x as Index, y as Index, 0)
     }
 
     /// Sets the cell at `(x, y)` to either **alive** or **dead**.
@@ -66,7 +68,7 @@ impl<G: Grid> Life<G> {
     /// ```
     #[track_caller]
     pub fn set(&mut self, x: i16, y: i16, is_alive: bool) -> bool {
-        self.cells.set(x, y, is_alive)
+        self.cells.set(x as Index, y as Index, 0, is_alive)
     }
 
     pub fn cells(&self) -> &G {
@@ -111,7 +113,7 @@ impl<G: Grid> Life<G> {
                     live_count == 3
                 };
 
-                self.scratch.set(x, y, is_alive);
+                self.scratch.set(x as Index, y as Index, 0, is_alive);
 
                 if self.get(x, y) != is_alive {
                     count += 1;
