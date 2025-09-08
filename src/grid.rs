@@ -113,31 +113,31 @@ mod tests {
 
         // Note: Must use grid()/grid_mut() because:
         //      error[E0502]: cannot borrow `flipped` as immutable because it is also borrowed as mutable
-        //         --> src/grid.rs:111:14
+        //         --> src/grid.rs:126:14
         //          |
-        //      105 |                 flipped: &mut flipped,
+        //      109 |                 flipped: &mut flipped,
         //          |                          ------------ mutable borrow occurs here
         //      ...
-        //      111 |         dbg!(&flipped);
+        //      126 |         dbg!(&flipped);
         //          |              ^^^^^^^^ immutable borrow occurs here
-        //      112 |
-        //      113 |         bitflipper.flip_and_advance(1);
+        //      127 |
+        //      128 |         bitflipper.step(1);
         //          |         ---------- mutable borrow later used here
         // dbg!(&flipped);
 
-        bitflipper.flip_and_advance(1);
+        bitflipper.step(1);
         assert_eq!(bitflipper.grid().flipped, &[(0, 0, 0)]);
         bitflipper.grid_mut().flipped.clear();
 
-        bitflipper.flip_and_advance(1);
+        bitflipper.step(1);
         assert_eq!(bitflipper.grid().flipped, &[(1, 1, 1)]);
         bitflipper.grid_mut().flipped.clear();
 
-        bitflipper.flip_and_advance(1);
+        bitflipper.step(1);
         assert_eq!(bitflipper.grid().flipped, &[(2, 2, 2)]);
         bitflipper.grid_mut().flipped.clear();
 
-        bitflipper.flip_and_advance(1);
+        bitflipper.step(1);
         assert_eq!(bitflipper.grid().flipped, &[(3, 3, 3)]);
         bitflipper.grid_mut().flipped.clear();
     }

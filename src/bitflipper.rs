@@ -38,7 +38,8 @@ impl<G: Grid> BitFlipper<G> {
         &mut self.grid
     }
 
-    pub fn flip_and_advance(&mut self, dir: i32) {
+    /// Flip and advance the sim `dir.abs()` times. If `dir` is negative, the sim runs backwards.
+    pub fn step(&mut self, dir: i32) {
         for _ in 0..dir.abs() {
             self.flip_and_advance_once(dir.signum());
         }
@@ -177,7 +178,7 @@ mod test {
         expected.flip(1, 1, 1);
 
         let mut bit_flipper = BitFlipper::new(expected.dims(), IVec3::one());
-        bit_flipper.flip_and_advance(1);
+        bit_flipper.step(1);
 
         let actual: &_ = bit_flipper.grid();
         save_test_image("simple_1_by_1", "expected", &expected);
@@ -192,7 +193,7 @@ mod test {
 
         let mut bit_flipper = BitFlipper::new(expected.dims(), IVec3::one());
         for _i in 0..64 {
-            bit_flipper.flip_and_advance(1);
+            bit_flipper.step(1);
         }
 
         let actual: &_ = bit_flipper.grid();
