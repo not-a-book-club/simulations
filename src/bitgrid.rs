@@ -1,6 +1,4 @@
-use crate::grid::Index;
-use crate::Grid;
-use ultraviolet::IVec3;
+use crate::prelude::*;
 
 use alloc::vec;
 use alloc::vec::Vec;

@@ -1,6 +1,4 @@
-use crate::grid::Index;
-use crate::Grid;
-use ultraviolet::IVec3;
+use crate::prelude::*;
 
 pub struct BitFlipper<G: Grid = crate::BitGrid> {
     pos: IVec3,
@@ -143,9 +141,9 @@ impl<G: Grid> BitFlipper<G> {
 
 #[cfg(test)]
 mod test {
-    // All the tests use BitGrid with BitFlipper
     use super::*;
-    use crate::BitGrid;
+
+    // All the tests use BitGrid with BitFlipper
     type BitFlipper = crate::BitFlipper<BitGrid>;
 
     use pretty_assertions::assert_eq;

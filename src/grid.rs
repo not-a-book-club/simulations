@@ -1,4 +1,4 @@
-use ultraviolet::IVec3;
+use crate::prelude::*;
 
 pub type Index = i32;
 
@@ -19,8 +19,8 @@ pub trait Grid: Sized {
     fn width(&self) -> Index;
     fn height(&self) -> Index;
     fn depth(&self) -> Index;
-    fn dims(&self) -> (Index, Index, Index) {
-        (self.width(), self.height(), self.depth())
+    fn dims(&self) -> IVec3 {
+        (self.width(), self.height(), self.depth()).into()
     }
 
     // Indexed access

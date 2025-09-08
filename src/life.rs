@@ -1,4 +1,4 @@
-use crate::Grid;
+use crate::prelude::*;
 
 #[derive(Clone)]
 pub struct Life<G: Grid = crate::BitGrid> {
