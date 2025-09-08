@@ -9,6 +9,7 @@ extern crate alloc;
 
 pub mod grid;
 pub use grid::Grid;
+pub use grid::GridNew;
 
 // mod life;
 // pub use life::Life;
@@ -24,6 +25,6 @@ pub use bitflipper::BitFlipper;
 
 pub mod prelude {
     pub use crate::bitgrid::BitGrid;
-    pub use crate::grid::{Grid, Index};
+    pub use crate::grid::{Grid, GridNew, Index};
     pub use ultraviolet::{IVec2, IVec3};
 }

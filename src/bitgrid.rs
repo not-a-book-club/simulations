@@ -181,11 +181,13 @@ impl BitGrid {
     }
 }
 
-impl Grid for BitGrid {
+impl GridNew for BitGrid {
     fn new(dims: IVec3) -> Self {
         Self::new(dims[0] as usize, dims[1] as usize, dims[2] as usize)
     }
+}
 
+impl Grid for BitGrid {
     fn dims(&self) -> IVec3 {
         self.dims()
     }

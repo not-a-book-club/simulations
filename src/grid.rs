@@ -11,10 +11,6 @@ pub type Index = i32;
 /// be able to implement them smarter. For example, [`BitGrid`](crate::BitGrid) stores its cells as a bit vector,
 /// contiguous in memory. As such, [`BitGird::fill`](crate::BitGrid::fill) is implemented using `fill` method on `core::slice`.
 pub trait Grid: Sized {
-    // TODO: It'd be nice to gave Grid::new() behind Clone, so we can have &mut T types impl Grid
-    // Construction
-    fn new(dims: IVec3) -> Self;
-
     // Checking size
     fn width(&self) -> Index {
         self.dims().x
@@ -57,6 +53,10 @@ pub trait Grid: Sized {
     }
 }
 
+pub trait GridNew: Grid {
+    fn new(dims: IVec3) -> Self;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -69,10 +69,6 @@ mod tests {
     }
 
     impl<G: Grid> Grid for TestGridWithMut<'_, G> {
-        fn new(dims: IVec3) -> Self {
-            unreachable!("Not expected to be called by bitflipper: new(dims: {dims:?})");
-        }
-
         fn dims(&self) -> IVec3 {
             IVec3::new(self.grid.width(), self.grid.height(), self.grid.depth())
         }

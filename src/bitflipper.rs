@@ -6,9 +6,9 @@ pub struct BitFlipper<G: Grid = crate::BitGrid> {
     grid: G,
 }
 
-impl<G: Grid + Clone> BitFlipper<G> {
+impl<G: GridNew> BitFlipper<G> {
     pub fn new(dims: IVec3, dir: IVec3) -> Self {
-        let grid = Grid::new(dims);
+        let grid = G::new(dims);
         Self::new_with_grid(grid, dir)
     }
 }
