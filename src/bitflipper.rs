@@ -8,14 +8,12 @@ pub struct BitFlipper<G: Grid = crate::BitGrid> {
 
 impl<G: Grid + Clone> BitFlipper<G> {
     pub fn new(dims: IVec3, dir: IVec3) -> Self {
-        Self {
-            pos: IVec3::zero(),
-            dir,
-            grid: Grid::new(dims),
-        }
+        let grid = Grid::new(dims);
+        Self::new_with_grid(grid, dir)
     }
 }
 
+// Public methods
 impl<G: Grid> BitFlipper<G> {
     pub fn new_with_grid(grid: G, dir: IVec3) -> Self {
         Self {
@@ -45,7 +43,10 @@ impl<G: Grid> BitFlipper<G> {
             self.flip_and_advance_once(dir.signum());
         }
     }
+}
 
+// Core Bitflipper Logic
+impl<G: Grid> BitFlipper<G> {
     fn flip_and_advance_once(&mut self, dir: i32) {
         debug_assert!(dir == dir.signum());
 
@@ -95,7 +96,7 @@ impl<G: Grid> BitFlipper<G> {
         let dist_y = (next_y - self.dir.y).abs();
         let dist_z = (next_z - self.dir.z).abs();
 
-        let mut move_amount = i32::max_value();
+        let mut move_amount = i32::MAX;
 
         if dist_x > 0 && dist_x < move_amount {
             move_amount = dist_x;
