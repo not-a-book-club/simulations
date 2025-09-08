@@ -10,11 +10,11 @@ extern crate alloc;
 pub mod grid;
 pub use grid::Grid;
 
-mod life;
-pub use life::Life;
+// mod life;
+// pub use life::Life;
 
-mod elementry;
-pub use elementry::Elementry;
+// mod elementry;
+// pub use elementry::Elementry;
 
 mod bitgrid;
 pub use bitgrid::BitGrid;

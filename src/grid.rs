@@ -1,4 +1,6 @@
-type Index = i16;
+use ultraviolet::IVec3;
+
+pub type Index = i32;
 
 /// An abstract 2D collection of set and unset cells.
 ///
@@ -11,26 +13,27 @@ type Index = i16;
 pub trait Grid: Sized {
     // TODO: It'd be nice to gave Grid::new() behind Clone, so we can have &mut T types impl Grid
     // Construction
-    fn new(width: usize, height: usize) -> Self;
+    fn new(dims: IVec3) -> Self;
 
     // Checking size
     fn width(&self) -> Index;
     fn height(&self) -> Index;
-    fn dims(&self) -> (Index, Index) {
-        (self.width(), self.height())
+    fn depth(&self) -> Index;
+    fn dims(&self) -> (Index, Index, Index) {
+        (self.width(), self.height(), self.depth())
     }
 
     // Indexed access
     #[track_caller]
-    fn get(&self, x: Index, y: Index) -> bool;
+    fn get(&self, x: Index, y: Index, z: Index) -> bool;
 
     #[track_caller]
-    fn set(&mut self, x: Index, y: Index, elem: bool) -> bool;
+    fn set(&mut self, x: Index, y: Index, z: Index, elem: bool) -> bool;
 
     #[track_caller]
-    fn flip(&mut self, x: Index, y: Index) -> bool {
-        let old = self.get(x, y);
-        self.set(x, y, !old);
+    fn flip(&mut self, x: Index, y: Index, z: Index) -> bool {
+        let old = self.get(x, y, z);
+        self.set(x, y, z, !old);
         old
     }
 
@@ -40,9 +43,11 @@ pub trait Grid: Sized {
     }
 
     fn fill(&mut self, set: bool) {
-        for y in 0..self.height() {
-            for x in 0..self.width() {
-                self.set(x, y, set);
+        for z in 0..self.depth() {
+            for y in 0..self.height() {
+                for x in 0..self.width() {
+                    self.set(x, y, z, set);
+                }
             }
         }
     }
@@ -57,14 +62,12 @@ mod tests {
     #[derive(Debug, PartialEq, Eq)]
     struct TestGridWithMut<'a, G: Grid> {
         grid: G,
-        flipped: &'a mut Vec<(Index, Index)>,
+        flipped: &'a mut Vec<(Index, Index, Index)>,
     }
 
     impl<G: Grid> Grid for TestGridWithMut<'_, G> {
-        fn new(width: usize, height: usize) -> Self {
-            unreachable!(
-                "Not expected to be called by bitflipper: new(width: {width}, height: {height})"
-            );
+        fn new(dims: IVec3) -> Self {
+            unreachable!("Not expected to be called by bitflipper: new(dims: {dims:?})");
         }
 
         fn width(&self) -> Index {
@@ -75,36 +78,41 @@ mod tests {
             self.grid.height()
         }
 
-        fn get(&self, x: Index, y: Index) -> bool {
-            let elem = self.grid.get(x, y);
-            unreachable!("Not expected to be called by bitflipper: get(x: {x}, y: {y}) == {elem}");
+        fn depth(&self) -> Index {
+            self.grid.depth()
         }
 
-        fn set(&mut self, x: Index, y: Index, elem: bool) -> bool {
+        fn get(&self, x: Index, y: Index, z: Index) -> bool {
+            let elem = self.grid.get(x, y, z);
             unreachable!(
-                "Not expected to be called by bitflipper: set(x: {x}, y: {y}, elem: {elem})"
+                "Not expected to be called by bitflipper: get(x: {x}, y: {y}, z: {z}) == {elem}"
             );
         }
 
-        fn flip(&mut self, x: Index, y: Index) -> bool {
-            dbg!((x, y));
-            self.flipped.push((x, y));
-            self.grid.flip(x, y)
+        fn set(&mut self, x: Index, y: Index, z: Index, elem: bool) -> bool {
+            unreachable!(
+                "Not expected to be called by bitflipper: set(x: {x}, y: {y}, z: {z}, elem: {elem})"
+            );
+        }
+
+        fn flip(&mut self, x: Index, y: Index, z: Index) -> bool {
+            dbg!((x, y, z));
+            self.flipped.push((x, y, z));
+            self.grid.flip(x, y, z)
         }
     }
 
     // Make sure certain types of Grid impls are possible
     #[test]
     fn check_flip_tracking_with_mut() {
-        let bitgrid = crate::BitGrid::new(32, 32);
+        let bitgrid = crate::BitGrid::new(32, 32, 32);
         let mut flipped = vec![];
         let mut bitflipper = BitFlipper::new_with_grid(
             TestGridWithMut {
                 grid: bitgrid,
                 flipped: &mut flipped,
             },
-            1, // dx
-            1, // dy
+            IVec3::one(),
         );
 
         // Note: Must use grid()/grid_mut() because:
@@ -122,19 +130,19 @@ mod tests {
         // dbg!(&flipped);
 
         bitflipper.flip_and_advance(1);
-        assert_eq!(bitflipper.grid().flipped, &[(31, 31)]);
+        assert_eq!(bitflipper.grid().flipped, &[(0, 0, 0)]);
         bitflipper.grid_mut().flipped.clear();
 
         bitflipper.flip_and_advance(1);
-        assert_eq!(bitflipper.grid().flipped, &[(30, 30)]);
+        assert_eq!(bitflipper.grid().flipped, &[(1, 1, 1)]);
         bitflipper.grid_mut().flipped.clear();
 
         bitflipper.flip_and_advance(1);
-        assert_eq!(bitflipper.grid().flipped, &[(29, 29)]);
+        assert_eq!(bitflipper.grid().flipped, &[(2, 2, 2)]);
         bitflipper.grid_mut().flipped.clear();
 
         bitflipper.flip_and_advance(1);
-        assert_eq!(bitflipper.grid().flipped, &[(28, 28)]);
+        assert_eq!(bitflipper.grid().flipped, &[(3, 3, 3)]);
         bitflipper.grid_mut().flipped.clear();
     }
 }

@@ -1,34 +1,28 @@
+use crate::grid::Index;
 use crate::Grid;
+use ultraviolet::IVec3;
 
 pub struct BitFlipper<G: Grid = crate::BitGrid> {
-    x: i32,
-    y: i32,
-    dir_x: i32,
-    dir_y: i32,
+    pos: IVec3,
+    dir: IVec3,
     grid: G,
 }
 
 impl<G: Grid + Clone> BitFlipper<G> {
-    pub fn new(width: i32, height: i32, dir_x: i32, dir_y: i32) -> Self {
+    pub fn new(dims: IVec3, dir: IVec3) -> Self {
         Self {
-            grid: Grid::new(width as usize, height as usize),
-            x: 0,
-            y: 0,
-            dir_x,
-            dir_y,
+            pos: IVec3::zero(),
+            dir,
+            grid: Grid::new(dims),
         }
     }
 }
 
 impl<G: Grid> BitFlipper<G> {
-    pub fn new_with_grid(grid: G, dir_x: i32, dir_y: i32) -> Self {
-        let x = grid.width() as i32;
-        let y = grid.height() as i32;
+    pub fn new_with_grid(grid: G, dir: IVec3) -> Self {
         Self {
-            x,
-            y,
-            dir_x,
-            dir_y,
+            pos: IVec3::zero(),
+            dir,
             grid,
         }
     }
@@ -49,34 +43,75 @@ impl<G: Grid> BitFlipper<G> {
     }
 
     pub fn flip_and_advance(&mut self, dir: i32) {
-        if self.x <= 0 {
-            self.dir_x = self.dir_x.abs() * dir;
+        for _ in 0..dir.abs() {
+            self.flip_and_advance_once(dir.signum());
+        }
+    }
+
+    fn flip_and_advance_once(&mut self, dir: i32) {
+        debug_assert!(dir == dir.signum());
+
+        if self.pos.x <= 0 {
+            self.dir.x = self.dir.x.abs() * dir;
         }
 
-        if self.x >= self.grid.width() as i32 * self.dir_y.abs() {
-            self.dir_x = -self.dir_x.abs() * dir;
+        if self.pos.x >= self.grid.width() * self.dir.y.abs().max(1) * self.dir.z.abs().max(1) {
+            self.dir.x = -self.dir.x.abs() * dir;
         }
 
-        if self.y <= 0 {
-            self.dir_y = self.dir_y.abs() * dir;
+        if self.pos.y <= 0 {
+            self.dir.y = self.dir.y.abs() * dir;
         }
 
-        if self.y >= self.grid.height() as i32 * self.dir_x.abs() {
-            self.dir_y = -self.dir_y.abs() * dir;
+        if self.pos.y >= self.grid.height() * self.dir.x.abs().max(1) * self.dir.z.abs().max(1) {
+            self.dir.y = -self.dir.y.abs() * dir;
         }
 
-        self.flip_bit(dir);
+        if self.pos.z <= 0 {
+            self.dir.z = self.dir.z.abs() * dir;
+        }
 
-        let next_x = Self::next_multiple_of_n_in_direction(self.x, self.dir_y, self.dir_x * dir);
-        let next_y = Self::next_multiple_of_n_in_direction(self.y, self.dir_x, self.dir_y * dir);
+        if self.pos.z >= self.grid.depth() * self.dir.x.abs().max(1) * self.dir.y.abs().max(1) {
+            self.dir.z = -self.dir.z.abs() * dir;
+        }
 
-        let dist_x = next_x - self.x;
-        let dist_y = next_y - self.y;
+        self.flip_bit(dir.signum());
 
-        let move_amount = i32::min(dist_x.abs(), dist_y.abs());
+        let next_x = Self::next_multiple_of_n_in_direction(
+            self.dir.x,
+            self.dir.y.abs().max(1) * self.dir.z.abs().max(1),
+            self.dir.x * dir,
+        );
+        let next_y = Self::next_multiple_of_n_in_direction(
+            self.dir.y,
+            self.dir.x.abs().max(1) * self.dir.z.abs().max(1),
+            self.dir.y * dir,
+        );
+        let next_z = Self::next_multiple_of_n_in_direction(
+            self.dir.z,
+            self.dir.x.abs().max(1) * self.dir.y.abs().max(1),
+            self.dir.z * dir,
+        );
 
-        self.x += move_amount * dir * self.dir_x.signum();
-        self.y += move_amount * dir * self.dir_y.signum();
+        let dist_x = (next_x - self.dir.x).abs();
+        let dist_y = (next_y - self.dir.y).abs();
+        let dist_z = (next_z - self.dir.z).abs();
+
+        let mut move_amount = i32::max_value();
+
+        if dist_x > 0 && dist_x < move_amount {
+            move_amount = dist_x;
+        }
+        if dist_y > 0 && dist_y < move_amount {
+            move_amount = dist_y;
+        }
+        if dist_z > 0 && dist_z < move_amount {
+            move_amount = dist_z;
+        }
+
+        self.pos.x += move_amount * dir * self.dir.x.signum();
+        self.pos.y += move_amount * dir * self.dir.y.signum();
+        self.pos.z += move_amount * dir * self.dir.z.signum();
     }
 
     fn next_multiple_of_n_in_direction(i: i32, n: i32, dir: i32) -> i32 {
@@ -92,15 +127,24 @@ impl<G: Grid> BitFlipper<G> {
     }
 
     fn flip_bit(&mut self, dir: i32) {
-        let x_pixel = (self.x + if self.dir_x * dir >= 0 { 0 } else { -1 }) / self.dir_y.abs();
-        let y_pixel = (self.y + if self.dir_y * dir >= 0 { 0 } else { -1 }) / self.dir_x.abs();
-        self.grid.flip(x_pixel as i16, y_pixel as i16);
+        let x_pixel = (self.pos.x + if self.dir.x * dir >= 0 { 0 } else { -1 })
+            / self.dir.y.abs().max(1)
+            / self.dir.z.abs().max(1);
+        let y_pixel = (self.pos.y + if self.dir.y * dir >= 0 { 0 } else { -1 })
+            / self.dir.x.abs().max(1)
+            / self.dir.z.abs().max(1);
+        let z_pixel = (self.pos.z + if self.dir.z * dir >= 0 { 0 } else { -1 })
+            / self.dir.x.abs().max(1)
+            / self.dir.y.abs().max(1);
+        self.grid
+            .flip(x_pixel as Index, y_pixel as Index, z_pixel as Index);
     }
 }
 
 #[cfg(test)]
 mod test {
     // All the tests use BitGrid with BitFlipper
+    use super::*;
     use crate::BitGrid;
     type BitFlipper = crate::BitFlipper<BitGrid>;
 
@@ -129,11 +173,11 @@ mod test {
     }
 
     #[test]
-    fn test_1_by_1_enabled() {
-        let mut expected = BitGrid::new(1, 1);
-        expected.flip(1, 1);
+    fn test_1_by_1_by_1_enabled() {
+        let mut expected = BitGrid::new(1, 1, 1);
+        expected.flip(1, 1, 1);
 
-        let mut bit_flipper = BitFlipper::new(expected.width() as _, expected.height() as _, 1, 1);
+        let mut bit_flipper = BitFlipper::new(expected.dims().into(), IVec3::one());
         bit_flipper.flip_and_advance(1);
 
         let actual: &_ = bit_flipper.grid();
@@ -144,10 +188,10 @@ mod test {
     }
 
     #[test]
-    fn test_32_by_32_simple_diagonal() {
-        let expected = BitGrid::new(32, 32);
+    fn test_32_by_32_by_32_simple_diagonal() {
+        let expected = BitGrid::new(32, 32, 32);
 
-        let mut bit_flipper = BitFlipper::new(expected.width() as _, expected.height() as _, 1, 1);
+        let mut bit_flipper = BitFlipper::new(expected.dims().into(), IVec3::one());
         for _i in 0..64 {
             bit_flipper.flip_and_advance(1);
         }
@@ -181,7 +225,7 @@ mod test {
         );
 
         let mut img = frame.to_image_grayscale();
-        let max_dim = i16::max(frame.width(), frame.height()) as f32;
+        let max_dim = i32::max(i32::max(frame.width(), frame.height()), frame.depth()) as f32;
 
         // Make it readable
         if max_dim < 500. {

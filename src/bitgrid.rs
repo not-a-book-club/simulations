@@ -1,4 +1,6 @@
+use crate::grid::Index;
 use crate::Grid;
+use ultraviolet::IVec3;
 
 use alloc::vec;
 use alloc::vec::Vec;
@@ -6,8 +8,9 @@ use alloc::vec::Vec;
 #[derive(Clone, PartialEq, Eq)]
 pub struct BitGrid {
     buf: Vec<u8>,
-    width: i16,
-    height: i16,
+    width: Index,
+    height: Index,
+    depth: Index,
 }
 
 impl core::fmt::Debug for BitGrid {
@@ -21,34 +24,40 @@ impl core::fmt::Debug for BitGrid {
 }
 
 impl BitGrid {
-    pub fn new(width: usize, height: usize) -> Self {
-        let buf = vec![0; (width * height) / 8];
+    pub fn new(width: usize, height: usize, depth: usize) -> Self {
+        let buf = vec![0; (width * height * depth).div_ceil(8)];
 
         Self {
             buf,
-            width: width as i16,
-            height: height as i16,
+            width: width as Index,
+            height: height as Index,
+            depth: depth as Index,
         }
     }
 
-    pub fn new_with_fn<F>(width: usize, height: usize, mut func: F) -> Self
+    pub fn new_with_fn<F>(width: usize, height: usize, depth: usize, mut func: F) -> Self
     where
-        F: FnMut(i16, i16) -> bool,
+        F: FnMut(Index, Index, Index) -> bool,
     {
-        let mut grid = Self::new(width, height);
-        for y in 0..grid.height() {
-            for x in 0..grid.width() {
-                grid.set(x, y, func(x, y));
+        let mut grid = Self::new(width, height, depth);
+        for z in 0..grid.depth() {
+            for y in 0..grid.height() {
+                for x in 0..grid.width() {
+                    grid.set(x, y, z, func(x as Index, y as Index, z as Index));
+                }
             }
         }
         grid
     }
 
     pub fn parse<const N: usize>(text: &str, set: [char; N]) -> Option<Self> {
+        let dim_z = 1;
         let dim_y = text.lines().count() - 1;
         let dim_x = text.lines().next().map(|l| l.len() - 1).unwrap_or(0);
 
-        let mut grid = Self::new(dim_x, dim_y);
+        let mut grid = Self::new(dim_x, dim_y, dim_z);
+
+        let z = 0;
         let mut y = 0;
         for line in text.lines() {
             let (line, _) = line.split_once("#").unwrap_or((line, ""));
@@ -58,7 +67,7 @@ impl BitGrid {
             }
             for (x, c) in line.chars().enumerate() {
                 if set.contains(&c) {
-                    grid.set(x as _, y as _, true);
+                    grid.set(x as _, y as _, z as _, true);
                 }
             }
             y += 1;
@@ -67,16 +76,20 @@ impl BitGrid {
         Some(grid)
     }
 
-    pub fn width(&self) -> i16 {
+    pub fn width(&self) -> Index {
         self.width
     }
 
-    pub fn height(&self) -> i16 {
+    pub fn height(&self) -> Index {
         self.height
     }
 
-    pub fn dims(&self) -> (i16, i16) {
-        (self.width(), self.height())
+    pub fn depth(&self) -> Index {
+        self.depth
+    }
+
+    pub fn dims(&self) -> (Index, Index, Index) {
+        (self.width(), self.height(), self.depth())
     }
 
     pub fn is_empty(&self) -> bool {
@@ -98,16 +111,16 @@ impl BitGrid {
     }
 
     #[track_caller]
-    pub fn get(&self, x: i16, y: i16) -> bool {
-        let (idx, bit) = self.idx(x, y);
+    pub fn get(&self, x: Index, y: Index, z: Index) -> bool {
+        let (idx, bit) = self.idx(x, y, z);
         let mask = 1 << bit;
 
         (self.buf[idx] & mask) != 0
     }
 
     #[track_caller]
-    pub fn set(&mut self, x: i16, y: i16, elem: bool) -> bool {
-        let (idx, bit) = self.idx(x, y);
+    pub fn set(&mut self, x: Index, y: Index, z: Index, elem: bool) -> bool {
+        let (idx, bit) = self.idx(x, y, z);
         let mask = 1 << bit;
 
         let old = (self.buf[idx] & mask) != 0;
@@ -119,8 +132,8 @@ impl BitGrid {
     }
 
     #[track_caller]
-    pub fn flip(&mut self, x: i16, y: i16) -> bool {
-        let (idx, bit) = self.idx(x, y);
+    pub fn flip(&mut self, x: Index, y: Index, z: Index) -> bool {
+        let (idx, bit) = self.idx(x, y, z);
         let mask = 1 << bit;
 
         let old = (self.buf[idx] & mask) != 0;
@@ -138,15 +151,17 @@ impl BitGrid {
         &mut self.buf
     }
 
-    pub fn idx(&self, mut x: i16, mut y: i16) -> (usize, u8) {
+    pub fn idx(&self, mut x: Index, mut y: Index, mut z: Index) -> (usize, u8) {
         // Wrap x and y along their axis
         x = (x + self.width()) % self.width();
         y = (y + self.height()) % self.height();
+        z = (z + self.depth()) % self.depth();
 
         let x = x as usize;
         let y = y as usize;
+        let z = z as usize;
 
-        let i = x + y * (self.width() as usize);
+        let i = x + y * (self.width() as usize) + z * ((self.width() * self.height()) as usize);
         let byte = i / 8;
         let bit = i % 8;
 
@@ -157,7 +172,7 @@ impl BitGrid {
         assert_eq!(self.width(), other.width());
         assert_eq!(self.height(), other.height());
 
-        let mut diff = Self::new(self.width() as _, self.height() as _);
+        let mut diff = Self::new(self.width() as _, self.height() as _, self.depth() as _);
         let bytes = diff.as_mut_bytes();
 
         for (i, (a, b)) in self.as_bytes().iter().zip(other.as_bytes()).enumerate() {
@@ -169,31 +184,35 @@ impl BitGrid {
 }
 
 impl Grid for BitGrid {
-    fn new(width: usize, height: usize) -> Self {
-        Self::new(width, height)
+    fn new(dims: IVec3) -> Self {
+        Self::new(dims[0] as usize, dims[1] as usize, dims[2] as usize)
     }
 
-    fn width(&self) -> i16 {
+    fn width(&self) -> Index {
         self.width()
     }
 
-    fn height(&self) -> i16 {
+    fn height(&self) -> Index {
         self.height()
     }
 
-    #[track_caller]
-    fn get(&self, x: i16, y: i16) -> bool {
-        self.get(x, y)
+    fn depth(&self) -> Index {
+        self.depth()
     }
 
     #[track_caller]
-    fn set(&mut self, x: i16, y: i16, set: bool) -> bool {
-        self.set(x, y, set)
+    fn get(&self, x: Index, y: Index, z: Index) -> bool {
+        self.get(x, y, z)
     }
 
     #[track_caller]
-    fn flip(&mut self, x: i16, y: i16) -> bool {
-        self.flip(x, y)
+    fn set(&mut self, x: Index, y: Index, z: Index, set: bool) -> bool {
+        self.set(x, y, z, set)
+    }
+
+    #[track_caller]
+    fn flip(&mut self, x: Index, y: Index, z: Index) -> bool {
+        self.flip(x, y, z)
     }
 
     fn fill(&mut self, set: bool) {
@@ -250,7 +269,7 @@ impl BitGrid {
             self.width() as u32,
             self.height() as u32,
             |x: u32, y: u32| {
-                if self.get(x as _, y as _) {
+                if self.get(x as _, y as _, 0 as _) {
                     palette[0]
                 } else {
                     palette[1]
@@ -297,9 +316,9 @@ mod tests {
     use rstest::*;
 
     #[test]
-    fn check_0x0() {
+    fn check_0x0x0() {
         // Make sure things don't panic
-        let grid = BitGrid::new(0, 0);
+        let grid = BitGrid::new(0, 0, 0);
         dbg!(&grid);
 
         let bytes = grid.as_bytes();
@@ -322,12 +341,12 @@ mod tests {
     #[case::x_is_12_wrap(12+32, (1, 4))]
     #[case::x_is_16_wrap(16+32, (2, 0))]
     #[case::x_is_17_wrap(17+32, (2, 1))]
-    fn check_32x1_idx(#[case] x: i16, #[case] (idx, bit): (usize, u8)) {
-        let grid = BitGrid::new(32, 1);
+    fn check_32x1_idx(#[case] x: Index, #[case] (idx, bit): (usize, u8)) {
+        let grid = BitGrid::new(32, 1, 1);
         let y = 0;
 
         println!("Checking index of x={x}, y={y}");
-        let ans = grid.idx(x, y);
+        let ans = grid.idx(x, y, 0);
         let expected = (idx, bit);
         assert_eq!(
             ans, expected,
@@ -335,7 +354,7 @@ mod tests {
         );
 
         // Make sure this doesn't panic
-        let _ = grid.get(x, y);
+        let _ = grid.get(x, y, 0);
     }
 
     #[rstest]
@@ -354,12 +373,12 @@ mod tests {
     #[case::y_is_12_wrap(12+32, (1, 4))]
     #[case::y_is_16_wrap(16+32, (2, 0))]
     #[case::y_is_17_wrap(17+32, (2, 1))]
-    fn check_1x32_idx(#[case] y: i16, #[case] (idx, bit): (usize, u8)) {
-        let grid = BitGrid::new(1, 32);
+    fn check_1x32_idx(#[case] y: Index, #[case] (idx, bit): (usize, u8)) {
+        let grid = BitGrid::new(1, 32, 1);
         let x = 0;
 
         println!("Checking index of x={x}, y={y}");
-        let ans = grid.idx(x, y);
+        let ans = grid.idx(x, y, 0);
         let expected = (idx, bit);
         assert_eq!(
             ans, expected,
@@ -367,7 +386,7 @@ mod tests {
         );
 
         // Make sure this doesn't panic
-        let _ = grid.get(x, y);
+        let _ = grid.get(x, y, 0);
     }
 
     #[test]
@@ -383,11 +402,11 @@ mod tests {
         println!("text={text}");
         let maybe_grid = BitGrid::parse(text, ['O', 'X']);
 
-        let mut expected = BitGrid::new(4, 4);
-        expected.set(0, 0, true);
-        expected.set(1, 1, true);
-        expected.set(2, 2, true);
-        expected.set(3, 3, true);
+        let mut expected = BitGrid::new(4, 4, 1);
+        expected.set(0, 0, 0, true);
+        expected.set(1, 1, 0, true);
+        expected.set(2, 2, 0, true);
+        expected.set(3, 3, 0, true);
 
         assert_eq!(maybe_grid, Some(expected));
     }
@@ -405,68 +424,80 @@ mod tests {
         println!("text={text}");
         let maybe_grid = BitGrid::parse(text, ['O', 'X']);
 
-        let mut expected = BitGrid::new(4, 4);
-        expected.set(3, 0, true);
-        expected.set(2, 1, true);
-        expected.set(1, 2, true);
-        expected.set(0, 3, true);
+        let mut expected = BitGrid::new(4, 4, 1);
+        expected.set(3, 0, 0, true);
+        expected.set(2, 1, 0, true);
+        expected.set(1, 2, 0, true);
+        expected.set(0, 3, 0, true);
 
         assert_eq!(maybe_grid, Some(expected));
     }
 
     #[test]
     fn check_get_set() {
-        let mut grid = BitGrid::new(16, 16);
+        let mut grid = BitGrid::new(16, 16, 16);
         assert!(grid.is_empty());
 
-        for y in 0..grid.height() {
-            for x in 0..grid.width() {
-                assert!(grid.is_empty());
-                assert_eq!(grid.get(x, y), false);
+        for z in 0..grid.depth() {
+            for y in 0..grid.height() {
+                for x in 0..grid.width() {
+                    assert!(grid.is_empty());
+                    assert_eq!(grid.get(x, y, z), false);
 
-                grid.set(x, y, true);
-                assert!(!grid.is_empty());
-                assert_eq!(grid.get(x, y), true);
+                    grid.set(x, y, z, true);
+                    assert!(!grid.is_empty());
+                    assert_eq!(grid.get(x, y, z), true);
 
-                grid.set(x, y, false);
-                assert_eq!(grid.get(x, y), false);
+                    grid.set(x, y, z, false);
+                    assert_eq!(grid.get(x, y, z), false);
+                }
             }
         }
     }
 
     #[test]
     fn check_flip() {
-        let mut grid = BitGrid::new(16, 16);
+        let mut grid = BitGrid::new(16, 16, 16);
         assert!(grid.is_empty());
 
-        for y in 0..grid.height() {
-            for x in 0..grid.width() {
-                grid.flip(x, y);
+        for z in 0..grid.depth() {
+            for y in 0..grid.height() {
+                for x in 0..grid.width() {
+                    grid.flip(x, y, z);
+                }
             }
         }
 
         assert_eq!(grid.is_empty(), false);
-        for y in 0..grid.height() {
-            for x in 0..grid.width() {
-                assert_eq!(grid.get(x, y), true);
+        for z in 0..grid.depth() {
+            for y in 0..grid.height() {
+                for x in 0..grid.width() {
+                    assert_eq!(grid.get(x, y, z), true);
+                }
             }
         }
     }
 
     #[test]
     fn check_byte_layout() {
-        let mut grid = BitGrid::new(16, 16);
+        let mut grid = BitGrid::new(16, 16, 16);
 
-        for y in 0..grid.height() {
-            for x in 0..grid.width() {
-                let (idx, bit) = grid.idx(x, y);
-                println!("Checking setting bit at ({x}, {y}) ~= idx={idx}, bit={bit}");
-                assert_eq!(grid.get(x, y), false, "Failed to get bit at ({x}, {y})");
-                grid.set(x, y, true);
+        for z in 0..grid.depth() {
+            for y in 0..grid.height() {
+                for x in 0..grid.width() {
+                    let (idx, bit) = grid.idx(x, y, z);
+                    println!("Checking setting bit at ({x}, {y}, {z}) ~= idx={idx}, bit={bit}");
+                    assert_eq!(
+                        grid.get(x, y, z),
+                        false,
+                        "Failed to get bit at ({x}, {y}, {z})"
+                    );
+                    grid.set(x, y, z, true);
+                }
             }
         }
 
-        let byte_len = (grid.width() * grid.height() / 8) as usize;
+        let byte_len = (grid.width() * grid.height() * grid.depth() / 8) as usize;
         assert_eq!(grid.as_bytes().len(), byte_len);
         assert_eq!(grid.as_bytes(), vec![0b1111_1111; byte_len]);
     }
