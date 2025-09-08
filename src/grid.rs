@@ -59,9 +59,8 @@ pub trait Grid: Sized {
 
 #[cfg(test)]
 mod tests {
-    use crate::BitFlipper;
-
     use super::*;
+    use crate::BitFlipper;
 
     #[derive(Debug, PartialEq, Eq)]
     struct TestGridWithMut<'a, G: Grid> {

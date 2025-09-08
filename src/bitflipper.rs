@@ -136,8 +136,7 @@ impl<G: Grid> BitFlipper<G> {
         let z_pixel = (self.pos.z + if self.dir.z * dir >= 0 { 0 } else { -1 })
             / self.dir.x.abs().max(1)
             / self.dir.y.abs().max(1);
-        self.grid
-            .flip(x_pixel as Index, y_pixel as Index, z_pixel as Index);
+        self.grid.flip(x_pixel, y_pixel, z_pixel);
     }
 }
 
