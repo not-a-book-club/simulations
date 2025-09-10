@@ -38,6 +38,18 @@ impl<G: Grid> BitFlipper<G> {
         &mut self.grid
     }
 
+    pub fn dims(&self) -> IVec3 {
+        self.grid.dims()
+    }
+
+    pub fn dir(&self) -> IVec3 {
+        self.dir
+    }
+
+    pub fn pos(&self) -> IVec3 {
+        self.pos
+    }
+
     /// Flip and advance the sim `dir.abs()` times. If `dir` is negative, the sim runs backwards.
     pub fn step(&mut self, dir: i32) {
         for _ in 0..dir.abs() {
