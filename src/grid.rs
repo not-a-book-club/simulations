@@ -103,7 +103,7 @@ mod tests {
                 grid: bitgrid,
                 flipped: &mut flipped,
             },
-            IVec3::one(),
+            IVec3::new(2, 2, 2),
         );
 
         // Note: Must use grid()/grid_mut() because:
