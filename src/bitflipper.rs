@@ -90,24 +90,24 @@ impl<G: Grid> BitFlipper<G> {
         self.flip_bit(dir.signum());
 
         let next_x = Self::next_multiple_of_n_in_direction(
-            self.dir.x,
+            self.pos.x,
             self.dir.y.abs().max(1) * self.dir.z.abs().max(1),
             self.dir.x * dir,
         );
         let next_y = Self::next_multiple_of_n_in_direction(
-            self.dir.y,
+            self.pos.y,
             self.dir.x.abs().max(1) * self.dir.z.abs().max(1),
             self.dir.y * dir,
         );
         let next_z = Self::next_multiple_of_n_in_direction(
-            self.dir.z,
+            self.pos.z,
             self.dir.x.abs().max(1) * self.dir.y.abs().max(1),
             self.dir.z * dir,
         );
 
-        let dist_x = (next_x - self.dir.x).abs();
-        let dist_y = (next_y - self.dir.y).abs();
-        let dist_z = (next_z - self.dir.z).abs();
+        let dist_x = (next_x - self.pos.x).abs();
+        let dist_y = (next_y - self.pos.y).abs();
+        let dist_z = (next_z - self.pos.z).abs();
 
         let mut move_amount = i32::MAX;
 
