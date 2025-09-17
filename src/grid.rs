@@ -23,6 +23,8 @@ pub trait Grid: Sized {
     }
     fn dims(&self) -> IVec3;
 
+    fn resize(&mut self, new_dims: IVec3);
+
     // Indexed access
     #[track_caller]
     fn get(&self, x: Index, y: Index, z: Index) -> bool;

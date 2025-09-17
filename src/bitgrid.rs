@@ -207,6 +207,17 @@ impl Grid for BitGrid {
         self.flip(x, y, z)
     }
 
+    fn resize(&mut self, new_dims: IVec3) {
+        let mut needs_resize = false;
+        for (o, n) in core::iter::zip(self.dims().as_array(), new_dims.as_array()) {
+            needs_resize |= n > o;
+        }
+
+        if needs_resize {
+            todo!();
+        }
+    }
+
     fn fill(&mut self, set: bool) {
         if set {
             self.as_mut_bytes().fill(0b0000_0000_u8);

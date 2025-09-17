@@ -50,6 +50,16 @@ impl<G: Grid> BitFlipper<G> {
         self.pos
     }
 
+    pub fn resize(&mut self, new_dims: IVec3) {
+        self.grid.resize(new_dims);
+    }
+
+    pub fn set_dir(&mut self, new_dir: IVec3) {
+        self.dir = new_dir;
+        // TODO: Need to update fractional pos?
+        self.pos = IVec3::zero();
+    }
+
     /// Flip and advance the sim `dir.abs()` times. If `dir` is negative, the sim runs backwards.
     pub fn step(&mut self, dir: i32) {
         for _ in 0..dir.abs() {
