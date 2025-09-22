@@ -148,8 +148,18 @@ impl<G: Grid> BitFlipper<G> {
         (n.abs() + (i % n.abs())) % n.abs()
     }
 
+    // Flip the pixel we're about to traverse.
     fn flip_bit(&mut self, dir: i32) {
-        // TODO: Why do we subtract one here again?
+        // When we're on an edge, it's ambigious which pixel we should flip.
+        // So subtract 1 when moving in the negative direction to move within the target pixel.
+        //     .->
+        // |---|---|
+        //       ^   flip this
+        //
+        //   <-.
+        // |---|---|
+        //   ^       flip that
+
         let mut pos: IVec3 = self.pos;
         if self.dir.x * dir < 0 {
             pos.x -= 1;
