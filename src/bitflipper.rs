@@ -55,9 +55,14 @@ impl<G: Grid> BitFlipper<G> {
     }
 
     pub fn set_dir(&mut self, new_dir: IVec3) {
+        // Sloppily approximate our current location in the new coordinate space
+        self.pos = IVec3 {
+            x: (self.pos.x * new_dir.y * new_dir.z / self.dir.y / self.dir.z).abs(),
+            y: (self.pos.y * new_dir.x * new_dir.z / self.dir.x / self.dir.z).abs(),
+            z: (self.pos.z * new_dir.x * new_dir.y / self.dir.x / self.dir.y).abs(),
+        };
+
         self.dir = new_dir;
-        // TODO: Need to update fractional pos?
-        self.pos = IVec3::zero();
     }
 
     /// Flip and advance the sim `dir.abs()` times. If `dir` is negative, the sim runs backwards.
