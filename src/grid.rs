@@ -93,6 +93,10 @@ mod tests {
             self.flipped.push((x, y, z));
             self.grid.flip(x, y, z)
         }
+
+        fn resize(&mut self, new_dims: IVec3) {
+            unreachable!("Not expected to be called by bitflipper: resize(new_dims: {new_dims:?})");
+        }
     }
 
     // Make sure certain types of Grid impls are possible
