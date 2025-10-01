@@ -24,8 +24,8 @@ mod bitflipper;
 pub use bitflipper::BitFlipper;
 
 pub mod prelude {
-    pub use crate::bitgrid::BitGrid;
     pub use crate::bitflipper::BitFlipper;
+    pub use crate::bitgrid::BitGrid;
     pub use crate::grid::{Grid, GridNew, Index};
     pub use ultraviolet::{IVec2, IVec3};
 }
