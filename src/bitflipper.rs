@@ -56,13 +56,13 @@ impl<G: Grid> BitFlipper<G> {
 
     pub fn set_dir(&mut self, new_dir: IVec3) {
         // Sloppily approximate our current location in the new coordinate space
-        let (x, y, z) = (self.pos.x as i64, self.pos.y as i64, self.pos.z as i64);
-        let (dx0, dy0, dz0) = (self.dir.x as i64, self.dir.y as i64, self.dir.z as i64);
-        let (dx1, dy1, dz1) = (new_dir.x as i64, new_dir.y as i64, new_dir.z as i64);
+        let [x, y, z] = self.pos.as_array().map(|a| a.unsigned_abs().max(1) as u64);
+        let [dx0, dy0, dz0] = self.dir.as_array().map(|a| a.unsigned_abs().max(1) as u64);
+        let [dx1, dy1, dz1] = new_dir.as_array().map(|a| a.unsigned_abs().max(1) as u64);
         self.pos = IVec3 {
-            x: (x * dy0 * dz0 / dy1 / dz1).abs() as i32,
-            y: (y * dx0 * dz0 / dx1 / dz1).abs() as i32,
-            z: (z * dx0 * dy0 / dx1 / dy1).abs() as i32,
+            x: (x * dy0 * dz0 / dy1 / dz1) as i32,
+            y: (y * dx0 * dz0 / dx1 / dz1) as i32,
+            z: (z * dx0 * dy0 / dx1 / dy1) as i32,
         };
 
         self.dir = new_dir;
