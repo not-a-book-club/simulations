@@ -60,9 +60,9 @@ impl<G: Grid> BitFlipper<G> {
         let [dx0, dy0, dz0] = self.dir.as_array().map(|a| a.unsigned_abs().max(1) as u64);
         let [dx1, dy1, dz1] = new_dir.as_array().map(|a| a.unsigned_abs().max(1) as u64);
         self.pos = IVec3 {
-            x: (x * dy0 * dz0 / dy1 / dz1) as i32,
-            y: (y * dx0 * dz0 / dx1 / dz1) as i32,
-            z: (z * dx0 * dy0 / dx1 / dy1) as i32,
+            x: (x * dy1 * dz1 / dy0 / dz0) as i32,
+            y: (y * dx1 * dz1 / dx0 / dz0) as i32,
+            z: (z * dx1 * dy1 / dx0 / dy0) as i32,
         };
 
         self.dir = new_dir;
