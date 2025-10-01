@@ -3,6 +3,7 @@ use crate::prelude::*;
 pub struct BitFlipper<G: Grid = crate::BitGrid> {
     pos: IVec3,
     dir: IVec3,
+    dir_sign: IVec3,
     grid: G,
 }
 
@@ -19,6 +20,7 @@ impl<G: Grid> BitFlipper<G> {
         Self {
             pos: IVec3::zero(),
             dir,
+            dir_sign: IVec3::one(),
             grid,
         }
     }
@@ -82,27 +84,27 @@ impl<G: Grid> BitFlipper<G> {
         debug_assert!(dir == dir.signum());
 
         if self.pos.x <= 0 {
-            self.dir.x = self.dir.x.abs() * dir;
+            self.dir_sign.x = self.dir.x.signum() * dir.signum();
         }
 
         if self.pos.x >= self.grid.width() * self.dir.y.abs().max(1) * self.dir.z.abs().max(1) {
-            self.dir.x = -self.dir.x.abs() * dir;
+            self.dir_sign.x = -self.dir.x.signum() * dir.signum();
         }
 
         if self.pos.y <= 0 {
-            self.dir.y = self.dir.y.abs() * dir;
+            self.dir_sign.y = self.dir.y.signum() * dir.signum();
         }
 
         if self.pos.y >= self.grid.height() * self.dir.x.abs().max(1) * self.dir.z.abs().max(1) {
-            self.dir.y = -self.dir.y.abs() * dir;
+            self.dir_sign.y = -self.dir.y.signum() * dir.signum();
         }
 
         if self.pos.z <= 0 {
-            self.dir.z = self.dir.z.abs() * dir;
+            self.dir_sign.z = self.dir.z.signum() * dir.signum();
         }
 
         if self.pos.z >= self.grid.depth() * self.dir.x.abs().max(1) * self.dir.y.abs().max(1) {
-            self.dir.z = -self.dir.z.abs() * dir;
+            self.dir_sign.z = -self.dir.z.signum() * dir.signum();
         }
 
         self.flip_bit(dir.signum());
@@ -110,17 +112,17 @@ impl<G: Grid> BitFlipper<G> {
         let next_x = Self::next_multiple_of_n_in_direction(
             self.pos.x,
             self.dir.y.abs().max(1) * self.dir.z.abs().max(1),
-            self.dir.x * dir,
+            self.dir.x * self.dir_sign.x * dir,
         );
         let next_y = Self::next_multiple_of_n_in_direction(
             self.pos.y,
             self.dir.x.abs().max(1) * self.dir.z.abs().max(1),
-            self.dir.y * dir,
+            self.dir.y * self.dir_sign.y * dir,
         );
         let next_z = Self::next_multiple_of_n_in_direction(
             self.pos.z,
             self.dir.x.abs().max(1) * self.dir.y.abs().max(1),
-            self.dir.z * dir,
+            self.dir.z * self.dir_sign.z * dir,
         );
 
         let dist_x = (next_x - self.pos.x).abs();
@@ -139,9 +141,9 @@ impl<G: Grid> BitFlipper<G> {
             move_amount = dist_z;
         }
 
-        self.pos.x += move_amount * dir * self.dir.x.signum();
-        self.pos.y += move_amount * dir * self.dir.y.signum();
-        self.pos.z += move_amount * dir * self.dir.z.signum();
+        self.pos.x += move_amount * dir * self.dir.x.signum() * self.dir_sign.x;
+        self.pos.y += move_amount * dir * self.dir.y.signum() * self.dir_sign.y;
+        self.pos.z += move_amount * dir * self.dir.z.signum() * self.dir_sign.z;
     }
 
     fn next_multiple_of_n_in_direction(i: i32, n: i32, dir: i32) -> i32 {
@@ -169,13 +171,13 @@ impl<G: Grid> BitFlipper<G> {
         //   ^       flip that
 
         let mut pos: IVec3 = self.pos;
-        if self.dir.x * dir < 0 {
+        if dir * self.dir.x * self.dir_sign.x < 0 {
             pos.x -= 1;
         }
-        if self.dir.y * dir < 0 {
+        if dir * self.dir.y * self.dir_sign.y < 0 {
             pos.y -= 1;
         }
-        if self.dir.z * dir < 0 {
+        if dir * self.dir.z * self.dir_sign.z < 0 {
             pos.z -= 1;
         }
 
